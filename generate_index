@@ -6,6 +6,8 @@ set -euo pipefail
 # you shouldn't have to edit this script
 
 # Variables
+SYSTEM_UPTIME=$(uptime)
+USER=$(whoami)
 KERNEL_RELEASE=$(uname -r)
 OS_NAME=$(grep '^PRETTY_NAME' /etc/os-release | cut -d '=' -f2 | tr -d '"')
 DATE=$(date +"%d/%m/%Y")
@@ -34,6 +36,8 @@ cat <<EOF > "$OUTPUT_FILE"
     <p><strong>Operating System:</strong> $OS_NAME</p>
     <p><strong>Date:</strong> $DATE</p>
     <p><strong>Number of Installed Packages:</strong> $PACKAGE_COUNT</p>
+    <p><strong>User:</strong> $USER</p>
+    <p><strong>System Uptime:</strong> $SYSTEM_UPTIME</p>
 </body>
 </html>
 EOF
