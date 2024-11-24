@@ -173,7 +173,18 @@ Add the following to the http block in the configuration file:
 ```nvim
 http {
 	...
+	#General Configuration
+	charset utf-8;
 	types_hash_max_size 4096;
+	tcp_nopush on;
+	tcp_nodelay on;
+	log_not_found off;
+	
+	#logging access and errors
+	access_log /var/log/nginx/access.log;
+	error_log /var/log/nginx/error.log warn;
+
+	#load configurations
 	include sites-enabled/*;
 }
 ```
