@@ -26,6 +26,8 @@ Now that webgens home directory is fully set up, we need to change the ownership
 sudo chown -R webgen:webgen /var/lib/webgen
 ```
 
+This was done as creating a new system user allows for everything to be run with only the necessary privileges, and it gives us a clean working directory to easily manage the files.
+
 ## Task 2 - Creating .service & .timer Files
 For the second task, we are going to be creating a .service file and a .timer file that will run our script automatically everyday at 5am.
 
@@ -35,7 +37,7 @@ nvim generate-index.service
 ```
 
 Now inside the .service file we will add the following:
-```
+```nvim
 [Unit]
 Description=Running the generate_index script
 Wants=network-online.target
@@ -52,12 +54,12 @@ WantedBy=multi-user.target
 ```
 
 Next we will create the generate-index.timer file:
-```
+```bash
 nvim generate-index.timer
 ```
 
 Now inside the .timer file we will add the following:
-```
+```nvim
 [Unit]
 Description=Running the generate_index script everyday at 5 am
 
@@ -121,6 +123,11 @@ sudo journalctl -u generate-index.timer
 ## Task 3 - Setting Up nginx Config
 Now we will be setting up an nginx server that will run using the webgen user.
 
+If you don't have nginx installed you can run:
+```bash
+sudo pacman -S nginx
+```
+
 First, we will be creating a separate server block file that will configure the nginx server. We will need to make a couple of directories:
 ```bash
 sudo mkdir /etc/nginx/sites-available
@@ -136,7 +143,7 @@ sudo nvim /etc/nginx/sites-available/server-block.conf
 ```
 
 Add the following to the server-block.conf file:
-```
+```nvim
 server {
 	listen 80;
 	listen [::]:80;
@@ -150,7 +157,7 @@ server {
 }
 ```
 
-This server block file is being created to help keep the 
+This server block file is being created as it will allow for different sites to easily be enabled and disabled.
 
 Next, edit the main nginx configuration file to change the user to webgen and have it listen for the new server configuration:
 ```bash
@@ -158,14 +165,15 @@ sudo nvim /etc/nginx/nginx.conf
 ```
 
 Inside the configuration file, look for `user http;` and change it to:
-```
+```nvim
 user webgen;
 ```
 
 Add the following to the http block in the configuration file:
-```
+```nvim
 http {
 	...
+	types_hash_max_size 4096;
 	include sites-enabled/*;
 }
 ```
@@ -178,14 +186,6 @@ sudo ln -s /etc/nginx/sites-available/server-block.conf /etc/nginx/sites-enabled
 Before starting the nginx.service file, test the nginx configuration with the following:
 ```bash
 sudo nginx -t
-```
-
-If you get "could not build optimal types_hash, you should increase types_hash_max_size: 1024", you can add the following inside the http block:
-```
-http {
-	...
-	types_hash_max_size 4096;
-}
 ```
 
 If there are no syntax issues, restart daemon and start and enable nginx:
@@ -211,3 +211,36 @@ If you want or need more detail, run the following:
 sudo journalctl -u nginx
 ```
 ## Task 4 - Setting Up ufw
+Now that the nginx server is fully up and running, we will be setting up a firewall with ufw.
+
+If ufw isn't installed on your system, you can run:
+```bash
+sudo pacman -S ufw
+```
+
+Next, allow SSH and HTTP from anywhere:
+```bash
+sudo ufw allow ssh
+```
+
+```bash
+sudo ufw allow http
+```
+
+After, enable SSH rate limiting with the following:
+```bash
+sudo ufw limit ssh
+```
+
+Now, enable the firewall with the rules that were just set with:
+```bash
+sudo ufw enable
+```
+
+You can check the status of the firewall with the following:
+```bash
+sudo ufw status verbose
+```
+
+# Notes:
+When adding the user for additional system information, I used whoami assuming it would just show the current user, but I guess since the script is owned by webgen it shows webgen as the user? or maybe it's because the nginx server is set to webgen?
