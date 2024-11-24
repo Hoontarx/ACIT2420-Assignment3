@@ -69,12 +69,12 @@ Persistent=true
 WantedBy=timers.target
 ```
 
->[!NOTE]
->THIS IS WHERE I HAVE LEFT OFF, STILL NEED TO MOVE/COPY FILES TO /etc/systemd/system AND COMPLETE THE REST
-
 Now that we have both the .service and .timer files, we need to put them in the correct directory:
 ```bash
 sudo cp generate-index.service /etc/systemd/system/
+```
+
+```bash
 sudo cp generate-index.timer /etc/systemd/system/
 ```
 
@@ -83,7 +83,131 @@ Then we will reload systemd:
 sudo systemctl daemon-reload
 ```
 
-Lastly, we will start and enable the service:
+We will then start and enable the service:
+```bash
+sudo systemctl start generate-index.service
+```
 
+```bash
+sudo systemctl enable generate-index.service
+```
+
+We will do the same for the .timer file as well:
+```bash
+sudo systemctl start generate-index.timer
+```
+
+```bash
+sudo systemctl enable generate-index.timer
+```
+
+Lastly, double check the .service and .timer were started correctly with the following:
+```bash
+sudo systemctl status generate-index.service
+```
+
+```bash
+sudo systemctl status generate-index.timer
+```
+
+If there was an issue, you can use the following to check the logs:
+```bash
+sudo journalctl -u generate-index.service
+```
+
+```bash
+sudo journalctl -u generate-index.timer
+```
 ## Task 3 - Setting Up nginx Config
+Now we will be setting up an nginx server that will run using the webgen user.
+
+First, we will be creating a separate server block file that will configure the nginx server. We will need to make a couple of directories:
+```bash
+sudo mkdir /etc/nginx/sites-available
+```
+
+```bash
+sudo mkdir /etc/nginx/sites-enabled
+```
+
+Now, create the server block configuration file:
+```bash
+sudo nvim /etc/nginx/sites-available/server-block.conf
+```
+
+Add the following to the server-block.conf file:
+```
+server {
+	listen 80;
+	listen [::]:80;
+	server_name _;
+	root /var/lib/webgen/HTML;
+	index index.html;
+
+	location / {
+		try_files $uri $uri/ =404;
+	}
+}
+```
+
+This server block file is being created to help keep the 
+
+Next, edit the main nginx configuration file to change the user to webgen and have it listen for the new server configuration:
+```bash
+sudo nvim /etc/nginx/nginx.conf
+```
+
+Inside the configuration file, look for `user http;` and change it to:
+```
+user webgen;
+```
+
+Add the following to the http block in the configuration file:
+```
+http {
+	...
+	include sites-enabled/*;
+}
+```
+
+Next, a symbolic link will need to be made:
+```bash
+sudo ln -s /etc/nginx/sites-available/server-block.conf /etc/nginx/sites-enabled/server-block.conf
+```
+
+Before starting the nginx.service file, test the nginx configuration with the following:
+```bash
+sudo nginx -t
+```
+
+If you get "could not build optimal types_hash, you should increase types_hash_max_size: 1024", you can add the following inside the http block:
+```
+http {
+	...
+	types_hash_max_size 4096;
+}
+```
+
+If there are no syntax issues, restart daemon and start and enable nginx:
+```bash
+sudo systemctl daemon-reload
+```
+
+```bash
+sudo systemctl start nginx
+```
+
+```bash
+sudo systemctl enable nginx
+```
+
+Then check the status of nginx with the following:
+```bash
+sudo systemctl status nginx
+```
+
+If you want or need more detail, run the following:
+```bash
+sudo journalctl -u nginx
+```
 ## Task 4 - Setting Up ufw
